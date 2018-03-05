@@ -27,11 +27,25 @@ Be sure to execute the part found below `# Run this command to to configure your
 Ensure docker daemon is started.
 Everything should be ready to go then.
 
+### Build Image
+
+Build base jenkins
+
+```sh
+docker build -t jenkins:2.5 --build-arg JENKINS_VERSION=2.5 .
+```
+
+Build Jenkins with support Docker
+
+```sh
+docker build -t jenkins-docker .
+```
+
 ### Start Jenkins Container
 
 Suggested commandline:
 
-    docker run -p 10080:8080 --name jenkins -v jenkins_home:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock rgielen/jenkins-training
+    docker run -p 10080:8080 --name jenkins -v jenkins_home:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock jenkins-docker
 
 The options explained:
   * `docker run` is your base command.
@@ -47,6 +61,28 @@ The options explained:
   * ` -v /var/run/docker.sock:/var/run/docker.sock` mounts the host's docker socket for usage within the container.
     This enables the docker client within the container to start docker containers on the host using `sudo`
     Be careful with this option, [since basically the container gains root access to your host](http://stackoverflow.com/questions/40844197/what-is-the-docker-security-risk-of-var-run-docker-sock).
+
+    **Important: If you have problem run `DinD`**
+    ```
+    chmod 777 /var/run/docker.sock
+    ```
+
+    ```jenkins.sh
+    #!/bin/bash -x
+
+    # this only works if the docker group does not already exist
+
+    DOCKER_SOCKET=/var/run/docker.sock
+    DOCKER_GROUP=docker
+
+    if [ -S ${DOCKER_SOCKET} ]; then
+        DOCKER_GID=$(stat -c '%g' ${DOCKER_SOCKET})
+        groupadd -for -g ${DOCKER_GID} ${DOCKER_GROUP}
+        usermod -aG ${DOCKER_GROUP} ${JENKINS_USER}
+    fi
+    ```
+
+
   * `rgielen/jenkins-training` is the name of the image to run.
 
 ### Stop Jenkins Container
